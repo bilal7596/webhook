@@ -2,11 +2,12 @@
 	"name": "webhook",
 	"version": "1.0.0",
 	"description": "",
-	"main": "index.js",
+	"main": "app.js",
 	"scripts": {
 		"test": "echo \"Error: no test specified\" && exit 1",
-		"start": "node app.js",
-		"dev": "nodemon app.js",
+		"start": "node --env-file-if-exists=.env app.js",
+		"dev": "node --env-file-if-exists=.env app.js",
+		"worker": "node --env-file-if-exists=.env app.js",
 		"build": "pnpm install"
 	},
 	"keywords": [],
@@ -14,6 +15,7 @@
 	"license": "ISC",
 	"packageManager": "pnpm@10.11.0",
 	"dependencies": {
+		"@supabase/supabase-js": "^2.57.0",
 		"express": "^5.2.1"
 	}
 }
