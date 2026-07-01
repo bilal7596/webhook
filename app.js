@@ -2,7 +2,7 @@ const express = require("express")
 
 const { readConfig } = require("./lib/config")
 const { verifyMetaSignature } = require("./lib/meta-cloud")
-const { createQueueWorker } = require("./lib/workers/message-worker")
+const { createQueueWorker } = require("./lib/workers/queue-worker")
 const { classifyWebhookPayload } = require("./lib/webhook-classifier")
 const { persistRawWebhookEvent } = require("./lib/webhook-event-store")
 const { createWebhookJobRunner } = require("./lib/webhook-job-runner")
