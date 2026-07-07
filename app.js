@@ -2,12 +2,12 @@ const express = require("express")
 
 const { readConfig } = require("./lib/config")
 const { verifyMetaSignature } = require("./lib/meta-cloud")
-const { createQueueWorker } = require("./lib/workers/queue-worker")
 const { classifyWebhookPayload } = require("./lib/webhook-classifier")
 const { persistRawWebhookEvent } = require("./lib/webhook-event-store")
 const { createWebhookJobRunner } = require("./lib/webhook-job-runner")
 const { createMessageHandlers } = require("./lib/workers/webhook/message-worker")
 const { createAppHandlers } = require("./lib/workers/webhook/app-worker")
+const { createOutboundPgmqRunner } = require("./lib/workers/outbound-pgmq-runner")
 const { createServiceClient } = require("./lib/supabase")
 
 const config = readConfig()
@@ -85,7 +85,7 @@ app.post("/webhooks/meta", async (req, res) => {
 	}
 })
 
-const queueWorker = createQueueWorker({ supabase, config })
+const outboundPgmqRunner = createOutboundPgmqRunner({ supabase, config })
 const messageRunner = createWebhookJobRunner({
 	supabase,
 	config,
@@ -100,16 +100,16 @@ const appRunner = createWebhookJobRunner({
 	handlers: createAppHandlers(),
 	channelName: "webhook-jobs-app",
 })
-let stopWorker = null
+let stopOutboundRunner = null
 let stopMessageRunner = null
 let stopAppRunner = null
 let reapTimer = null
 
 app.listen(config.port, async () => {
 	console.log(`[webhook] listening on port ${config.port}`)
-	if (config.enableWorker) {
-		stopWorker = await queueWorker.start()
-		console.log("[worker] queue worker started")
+	if (config.enableOutboundPgmqWorker) {
+		stopOutboundRunner = await outboundPgmqRunner.start()
+		console.log("[worker] outbound PGMQ worker started")
 	}
 	if (config.enableWebhookMessageWorker) {
 		stopMessageRunner = await messageRunner.start()
@@ -136,7 +136,7 @@ app.listen(config.port, async () => {
 })
 
 process.on("SIGINT", () => {
-	if (typeof stopWorker === "function") stopWorker()
+	if (typeof stopOutboundRunner === "function") stopOutboundRunner()
 	if (typeof stopMessageRunner === "function") stopMessageRunner()
 	if (typeof stopAppRunner === "function") stopAppRunner()
 	if (reapTimer) clearInterval(reapTimer)
@@ -144,7 +144,7 @@ process.on("SIGINT", () => {
 })
 
 process.on("SIGTERM", () => {
-	if (typeof stopWorker === "function") stopWorker()
+	if (typeof stopOutboundRunner === "function") stopOutboundRunner()
 	if (typeof stopMessageRunner === "function") stopMessageRunner()
 	if (typeof stopAppRunner === "function") stopAppRunner()
 	if (reapTimer) clearInterval(reapTimer)
